@@ -67,7 +67,6 @@ function createNewUser(name, email, password, age) {
         bcrypt.genSalt(rounds, (err, salt) => {
             bcrypt.hash(password, salt, (err, hash) => {
                 if (err) throw err;
-
                 //creating a new user with the hashed password
                 const newUser = new userSchema({ email: email, name: name, password: hash, images: [], age: age });
                 newUser.save().then(() => {
@@ -170,6 +169,12 @@ function checkInput(name, email, password, age) {
         return ("NOERROR");
     }
 }
+
+function validateEmail(email){
+    const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
+}
+
 /*
     signup endpoint.
     Creates a new user and an image folder for the new user. 
@@ -180,11 +185,16 @@ function checkInput(name, email, password, age) {
     Param age: user's age.
 */
 app.post('/signup', (req, res) => {
+
     const { name, email, password, age } = req.body;
     const inputValidMsg = checkInput(name, email, password, age);
     if (inputValidMsg !== "NOERROR") {
         return res.status(400).json({ msg: inputValidMsg });
     }
+    if(!validateEmail(email)){
+        return res.status(400).json({ msg: "invalid email address" });
+    }
+
     try {
         userSchema.findOne({ email: email }).then(async (user) => {
             //the email address already exists
@@ -225,7 +235,6 @@ app.get('/getImage', async (req, res) => {
         var user = userObject.user;
         var userId = userObject.id;
         let imageName = req.query.imageName;
-        console.log(imageName)
         if (imageName === undefined){return res.status(400).json({msg: "ImageName should be specified"})}
         //if the specified images is actually owned by the the user
         if (await user.images.includes(imageName))

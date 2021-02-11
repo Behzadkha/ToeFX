@@ -1,8 +1,8 @@
 import { shallow } from 'enzyme';
 import React from 'react';
-import mockAxios from '../__mocks__/axios';
 import { config } from '../config';
 import Signup from '../components/Signup';
+import Axios from 'axios';
 
 
 let allStates = 
@@ -99,11 +99,11 @@ describe("Signup method: handleSignup", () => {
     it('Can successfully sign up a user', async () => {
         
         component.setState(allStates);
-        mockAxios.post = jest.fn(() => Promise.resolve({status: 200}));
+        Axios.post = jest.fn(() => Promise.resolve({status: 200}));
         await component.instance().handleSignup({preventDefault: () => {}});
 
-        expect(mockAxios.post).toHaveBeenCalledTimes(1);
-        expect(mockAxios.post).toHaveBeenCalledWith(`${config.dev_server}/signup`, {"age": "12", "email": "demo@gmail.com", "name": "test", "password": "somePasswordForTesting1234"});
+        expect(Axios.post).toHaveBeenCalledTimes(1);
+        expect(Axios.post).toHaveBeenCalledWith(`${config.dev_server}/signup`, {"age": "12", "email": "demo@gmail.com", "name": "test", "password": "somePasswordForTesting1234"});
         expect(mockedHistory.push).toHaveBeenCalledTimes(1);
         expect(mockedHistory.push).toHaveBeenCalledWith('/login');
 
@@ -113,18 +113,29 @@ describe("Signup method: handleSignup", () => {
 
         component.setState(allStates);
 
-        mockAxios.post = jest.fn(() => Promise.resolve({status: 400}));
+        Axios.post = jest.fn(() => Promise.resolve({status: 400}));
         await component.instance().handleSignup({preventDefault: () => {}});
 
         expect(component.state('emptyFieldError')).toEqual(false);
         expect(component.state('accountExistsError')).toEqual(true);//<----
         expect(component.state('passwordMismatchError')).toEqual(false);
+       
 
+    });
+
+    it('Server returns status: 404', async () => {
+        Axios.post = jest.fn(() => Promise.resolve({status: 404}));
+        component.setState(allStates);
+
+        Axios.post.mockRejectedValueOnce();
+        await component.instance().handleSignup({preventDefault: () => {}});
+        expect(component.state('accountExistsError')).toEqual(true);//<----
+        
     });
 
     it('State variables are empty', async () => {
 
-        mockAxios.post = jest.fn(() => Promise.resolve({status: 200}));
+        Axios.post = jest.fn(() => Promise.resolve({status: 200}));
         await component.instance().handleSignup({preventDefault: () => {}});
 
         expect(component.state('emptyFieldError')).toEqual(true); //<----
@@ -145,7 +156,7 @@ describe("Signup method: handleSignup", () => {
             }
         );
 
-        mockAxios.post = jest.fn(() => Promise.resolve({status: 200}));
+        Axios.post = jest.fn(() => Promise.resolve({status: 200}));
         await component.instance().handleSignup({preventDefault: () => {}});
 
         expect(component.state('emptyFieldError')).toEqual(false);
@@ -239,9 +250,42 @@ describe("Signup UI Functionalities", () => {
             preventDefault: () => {}
         })
 
-
-        expect(mockAxios.post).toHaveBeenCalledTimes(0);// the post request is not called
+        expect(Axios.post).toHaveBeenCalledTimes(0);// the post request is not called
         expect(component.state('errorMessage')).toEqual("Invalid Email Address");
+        
+    });
+
+    it("password starts with white spaces", async() => {
+        
+        emailField.simulate('change', {target: {value: "  some@gmail.com"}});
+        passwordField.simulate('change', {target: {value: "  23A password"}});
+        confirmedPassword.simulate('change', {target: {value: "  23A password"}});
+        fullName.simulate('change', {target: {value: allStates.fullName}});
+        age.simulate('change', {target: {value: allStates.age}});
+
+        await component.find('.signup-form').simulate('submit', {
+            preventDefault: () => {}
+        })
+
+        expect(Axios.post).toHaveBeenCalledTimes(0);// the post request is not called
+        expect(component.state('errorMessage')).toEqual("Invalid Email Address");
+        
+    });
+
+    it("password starts with white spaces", async() => {
+        
+        emailField.simulate('change', {target: {value: allStates.email}});
+        passwordField.simulate('change', {target: {value: "  23A password"}});
+        confirmedPassword.simulate('change', {target: {value: "  23A password"}});
+        fullName.simulate('change', {target: {value: allStates.fullName}});
+        age.simulate('change', {target: {value: allStates.age}});
+
+        await component.find('.signup-form').simulate('submit', {
+            preventDefault: () => {}
+        })
+
+        expect(Axios.post).toHaveBeenCalledTimes(0);// the post request is not called
+        expect(component.state('errorMessage')).toEqual("Invalid Password");
         
     });
 
